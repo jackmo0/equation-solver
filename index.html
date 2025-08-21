@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enhanced Equation Solver</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f0f0f, #1a1a2e, #16213e);
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      margin: 0;
+    }
+    
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      max-width: 800px;
+      width: 100%;
+    }
+    
+    h1 {
+      text-align: center;
+      background: linear-gradient(45deg, #00d4ff, #ff9500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 2.5em;
+      margin-bottom: 30px;
+      text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+    }
+    
+    .input-section {
+      margin-bottom: 30px;
+    }
+    
+    .input-container {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    
+    input {
+      width: 100%;
+      font-size: 18px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 2px solid rgba(0, 212, 255, 0.3);
+      padding: 15px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      transition: all 0.3s ease;
+      box-sizing: border-box;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: #00d4ff;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+      transform: translateY(-2px);
+    }
+    
+    input::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    
+    button {
+      padding: 15px;
+      font-size: 16px;
+      background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.5s;
+    }
+    
+    button:hover::before {
+      left: 100%;
+    }
+    
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+      border-color: #00d4ff;
+    }
+    
+    .solve-btn {
+      background: linear-gradient(45deg, #00d4ff, #0099cc) !important;
+      font-size: 18px !important;
+      font-weight: bold !important;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(0, 212, 255, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0); }
+    }
+    
+    .clear-btn {
+      background: linear-gradient(45deg, #ff4757, #ff3838) !important;
+    }
+    
+    .example-btn {
+      background: linear-gradient(45deg, #2ed573, #1dd1a1) !important;
+    }
+    
+    .solution-area {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      padding: 25px;
+      min-height: 200px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      max-height: 400px;
+      backdrop-filter: blur(5px);
+    }
+    
+    .step {
+      margin-bottom: 15px;
+      padding: 10px;
+      background: rgba(0, 212, 255, 0.1);
+      border-left: 4px solid #00d4ff;
+      border-radius: 5px;
+    }
+    
+    .result {
+      background: linear-gradient(45deg, rgba(46, 213, 115, 0.2), rgba(29, 209, 161, 0.2));
+      border: 2px solid #2ed573;
+      padding: 15px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 16px;
+      margin-top: 15px;
+      text-align: center;
+    }
+    
+    .error {
+      background: linear-gradient(45deg, rgba(255, 71, 87, 0.2), rgba(255, 56, 56, 0.2));
+      border: 2px solid #ff4757;
+      color: #ff4757;
+    }
+    
+    .examples {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .example {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-family: 'Courier New', monospace;
+    }
+    
+    .example:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: scale(1.02);
+    }
+    
+    .status {
+      text-align: center;
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #00d4ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔥 Equation Solver Pro</h1>
+    
+    <div class="input-section">
+      <div class="input-container">
+        <input type="text" id="equation" placeholder="Enter equation: x + 3 = 4, x² + 5x + 6 = 0, 2x - 7 = 3x + 1..." autocomplete="off" />
+      </div>
+      
+      <div class="button-grid">
+        <button onclick="solveEquation()" class="solve-btn">🚀 Solve Equation</button>
+        <button onclick="clearAll()" class="clear-btn">🗑️ Clear</button>
+        <button onclick="showExamples()" class="example-btn">💡 Examples</button>
+        <button onclick="showSteps = !showSteps; updateStatus()">📝 Toggle Steps</button>
+      </div>
+      
+      <div class="examples" id="examples" style="display: none;">
+        <div class="example" onclick="setExample('x + 3 = 4')">Linear: x + 3 = 4</div>
+        <div class="example" onclick="setExample('2x - 7 = 3x + 1')">Linear: 2x - 7 = 3x + 1</div>
+        <div class="example" onclick="setExample('x^2 + 5x + 6 = 0')">Quadratic: x² + 5x + 6 = 0</div>
+        <div class="example" onclick="setExample('x^2 - 4 = 0')">Quadratic: x² - 4 = 0</div>
+        <div class="example" onclick="setExample('2x^2 + 4x - 6 = 0')">Quadratic: 2x² + 4x - 6 = 0</div>
+        <div class="example" onclick="setExample('x^2 + x + 1 = 0')">Complex: x² + x + 1 = 0</div>
+      </div>
+    </div>
+    
+    <div class="solution-area" id="solution">
+      Welcome to Equation Solver Pro! 🎯
+      
+      Enter any equation and click "Solve" to get step-by-step solutions:
+      
+      📝 Linear equations: x + 3 = 4, 2x - 7 = 3x + 1
+      📈 Quadratic equations: x² + 5x + 6 = 0, ax² + bx + c = 0
+      ✨ Complex solutions supported!
+      
+      Click "Examples" to see sample equations you can try!
+    </div>
+    
+    <div class="status" id="status">Ready to solve equations! Toggle steps for detailed solutions.</div>
+  </div>
+
+  <script>
+    const equationInput = document.getElementById('equation');
+    const solutionArea = document.getElementById('solution');
+    const statusDiv = document.getElementById('status');
+    const examplesDiv = document.getElementById('examples');
+    
+    let showSteps = true;
+
+    function clearAll() {
+      equationInput.value = '';
+      solutionArea.textContent = 'Enter an equation above and click "Solve" to see the solution!';
+      statusDiv.textContent = 'Ready to solve equations!';
+    }
+
+    function showExamples() {
+      const isVisible = examplesDiv.style.display !== 'none';
+      examplesDiv.style.display = isVisible ? 'none' : 'grid';
+    }
+
+    function setExample(equation) {
+      equationInput.value = equation;
+      examplesDiv.style.display = 'none';
+      solveEquation();
+    }
+
+    function updateStatus() {
+      statusDiv.textContent = showSteps ? 'Steps mode ON - showing detailed solutions' : 'Steps mode OFF - showing results only';
+    }
+
+    function solveEquation() {
+      const equation = equationInput.value.trim();
+      
+      if (!equation) {
+        solutionArea.innerHTML = '<div class="result error">Please enter an equation!</div>';
+        return;
+      }
+
+      if (!equation.includes('=')) {
+        solutionArea.innerHTML = '<div class="result error">Please include an equals sign (=) in your equation!</div>';
+        return;
+      }
+
+      try {
+        const solution = parseAndSolveEquation(equation);
+        solutionArea.innerHTML = solution;
+        statusDiv.textContent = 'Equation solved successfully! 🎉';
+      } catch (error) {
+        solutionArea.innerHTML = `<div class="result error">Error solving equation: ${error.message}</div>`;
+        statusDiv.textContent = 'Error occurred while solving equation';
+      }
+    }
+
+    function parseAndSolveEquation(equation) {
+      // Clean the equation
+      let cleanEq = equation.replace(/\s+/g, ' ').trim();
+      
+      // Split by equals sign
+      const parts = cleanEq.split('=');
+      if (parts.length !== 2) {
+        throw new Error('Equation must have exactly one equals sign');
+      }
+
+      const leftSide = parts[0].trim();
+      const rightSide = parts[1].trim();
+      
+      // Parse both sides separately to get coefficients
+      const leftCoeffs = parseExpression(leftSide);
+      const rightCoeffs = parseExpression(rightSide);
+      
+      // Move everything to left side: leftSide - rightSide = 0
+      const coefficients = {
+        a: leftCoeffs.a - rightCoeffs.a,
+        b: leftCoeffs.b - rightCoeffs.b,
+        c: leftCoeffs.c - rightCoeffs.c
+      };
+      
+      // Determine equation type
+      let type;
+      if (Math.abs(coefficients.a) > 1e-10) {
+        type = 'quadratic';
+      } else if (Math.abs(coefficients.b) > 1e-10) {
+        type = 'linear';
+      } else {
+        if (Math.abs(coefficients.c) < 1e-10) {
+          throw new Error('Equation is always true (0 = 0)');
+        } else {
+          throw new Error('Equation has no solution');
+        }
+      }
+      
+      coefficients.type = type;
+      
+      let result = `<div class="step">Original equation: <strong>${equation}</strong></div>`;
+      
+      if (coefficients.type === 'linear') {
+        result += solveLinearNew(coefficients, leftSide, rightSide);
+      } else if (coefficients.type === 'quadratic') {
+        result += solveQuadratic(coefficients);
+      } else {
+        throw new Error('Equation type not supported or too complex');
+      }
+      
+      return result;
+    }
+
+    function parseExpression(expr) {
+      let a = 0, b = 0, c = 0;
+      
+      // Remove spaces and handle signs
+      expr = expr.replace(/\s/g, '');
+      
+      // Add + at the beginning if it doesn't start with + or -
+      if (!expr.startsWith('+') && !expr.startsWith('-')) {
+        expr = '+' + expr;
+      }
+      
+      // Split into terms while keeping the signs
+      const terms = expr.match(/[+-][^+-]+/g) || [];
+      
+      for (let term of terms) {
+        term = term.trim();
+        
+        if (term.includes('x^2') || term.includes('x²')) {
+          // Quadratic term
+          let coeff = term.replace(/x\^?[²2]/, '');
+          if (coeff === '+' || coeff === '') coeff = '+1';
+          if (coeff === '-') coeff = '-1';
+          a += parseFloat(coeff);
+        } else if (term.includes('x')) {
+          // Linear term
+          let coeff = term.replace(/x/, '');
+          if (coeff === '+' || coeff === '') coeff = '+1';
+          if (coeff === '-') coeff = '-1';
+          b += parseFloat(coeff);
+        } else if (term.match(/^[+-]?\d+\.?\d*$/)) {
+          // Constant term
+          c += parseFloat(term);
+        }
+      }
+      
+      return { a, b, c };
+    }
+
+    function solveLinearNew(coeffs, leftSide, rightSide) {
+      const { b, c } = coeffs;
+      let result = '';
+      
+      if (showSteps) {
+        // Show the proper rearrangement
+        result += `<div class="step">Rearranging: <strong>${leftSide} = ${rightSide}</strong></div>`;
+        
+        // Move terms to show standard form
+        if (c !== 0) {
+          result += `<div class="step">Moving all terms to left: <strong>${formatCoeff(b)}x ${formatCoeff(c, true)} = 0</strong></div>`;
+        } else {
+          result += `<div class="step">Standard form: <strong>${formatCoeff(b)}x = 0</strong></div>`;
+        }
+        
+        result += `<div class="step">Coefficients: b = ${b}, c = ${c}</div>`;
+      }
+      
+      if (Math.abs(b) < 1e-10) {
+        if (Math.abs(c) < 1e-10) {
+          result += `<div class="result">Infinite solutions! Every value of x satisfies the equation.</div>`;
+        } else {
+          result += `<div class="result error">No solution! The equation is inconsistent.</div>`;
+        }
+      } else {
+        const x = -c / b;
+        
+        if (showSteps) {
+          result += `<div class="step">Solving for x: ${formatCoeff(b)}x = ${-c}</div>`;
+          result += `<div class="step">x = ${-c} ÷ (${b}) = ${formatNum(x)}</div>`;
+          
+          // Verification by substituting back into original equation
+          const leftCheck = evaluateExpression(leftSide, x);
+          const rightCheck = evaluateExpression(rightSide, x);
+          result += `<div class="step">Verification: Left side = ${formatNum(leftCheck)}, Right side = ${formatNum(rightCheck)} ✓</div>`;
+        }
+        
+        result += `<div class="result">Solution: <strong>x = ${formatNum(x)}</strong></div>`;
+      }
+      
+      return result;
+    }
+
+    function evaluateExpression(expr, xValue) {
+      // Simple evaluation for verification
+      let result = expr;
+      result = result.replace(/x/g, `(${xValue})`);
+      
+      // Handle basic arithmetic
+      try {
+        // Replace common patterns
+        result = result.replace(/(\d+)\s*\(\s*([+-]?\d*\.?\d*)\s*\)/g, '$1*$2');
+        return eval(result);
+      } catch (e) {
+        return 'Error';
+      }
+    }
+
+    function solveLinear(coeffs, leftSide, rightSide) {
+      const { b, c } = coeffs;
+      let result = '';
+      
+      if (showSteps) {
+        result += `<div class="step">Linear equation: <strong>${formatCoeff(b)}x ${formatCoeff(c, true)} = 0</strong></div>`;
+        result += `<div class="step">Coefficients: b = ${b}, c = ${c}</div>`;
+        result += `<div class="step">Solving: ${formatCoeff(b)}x = ${-c}</div>`;
+      }
+      
+      if (Math.abs(b) < 1e-10) {
+        if (Math.abs(c) < 1e-10) {
+          result += `<div class="result">Infinite solutions! Every value of x satisfies the equation.</div>`;
+        } else {
+          result += `<div class="result error">No solution! The equation ${Math.abs(c)} = 0 is impossible.</div>`;
+        }
+      } else {
+        const x = -c / b;
+        
+        if (showSteps) {
+          result += `<div class="step">x = ${-c} ÷ ${b} = ${formatNum(x)}</div>`;
+          
+          // Verification
+          const verification = b * x + c;
+          result += `<div class="step">Verification: ${formatCoeff(b)}(${formatNum(x)}) ${formatCoeff(c, true)} = ${formatNum(verification)} ✓</div>`;
+        }
+        
+        result += `<div class="result">Solution: <strong>x = ${formatNum(x)}</strong></div>`;
+      }
+      
+      return result;
+    }
+
+    function solveQuadratic(coeffs) {
+      const { a, b, c } = coeffs;
+      let result = '';
+      
+      if (showSteps) {
+        result += `<div class="step">Quadratic equation: <strong>${formatCoeff(a)}x² ${formatCoeff(b, true)}x ${formatCoeff(c, true)} = 0</strong></div>`;
+        result += `<div class="step">Coefficients: a = ${a}, b = ${b}, c = ${c}</div>`;
+      }
+      
+      const discriminant = b * b - 4 * a * c;
+      
+      if (showSteps) {
+        result += `<div class="step">Discriminant: Δ = b² - 4ac = ${b}² - 4(${a})(${c}) = ${discriminant}</div>`;
+      }
+      
+      if (discriminant > 0) {
+        const sqrtDisc = Math.sqrt(discriminant);
+        const x1 = (-b + sqrtDisc) / (2 * a);
+        const x2 = (-b - sqrtDisc) / (2 * a);
+        
+        if (showSteps) {
+          result += `<div class="step">Two real solutions using quadratic formula:</div>`;
+          result += `<div class="step">x = (-b ± √Δ) / (2a) = (${-b} ± √${discriminant}) / ${2 * a}</div>`;
+          result += `<div class="step">x₁ = (${-b} + ${formatNum(sqrtDisc)}) / ${2 * a} = ${formatNum(x1)}</div>`;
+          result += `<div class="step">x₂ = (${-b} - ${formatNum(sqrtDisc)}) / ${2 * a} = ${formatNum(x2)}</div>`;
+        }
+        
+        result += `<div class="result">Two real solutions:<br><strong>x₁ = ${formatNum(x1)}</strong><br><strong>x₂ = ${formatNum(x2)}</strong></div>`;
+        
+      } else if (discriminant === 0) {
+        const x = -b / (2 * a);
+        
+        if (showSteps) {
+          result += `<div class="step">One repeated solution (discriminant = 0):</div>`;
+          result += `<div class="step">x = -b / (2a) = ${-b} / ${2 * a} = ${formatNum(x)}</div>`;
+        }
+        
+        result += `<div class="result">One repeated solution:<br><strong>x = ${formatNum(x)}</strong></div>`;
+        
+      } else {
+        const realPart = -b / (2 * a);
+        const imagPart = Math.sqrt(-discriminant) / (2 * a);
+        
+        if (showSteps) {
+          result += `<div class="step">Two complex solutions (discriminant < 0):</div>`;
+          result += `<div class="step">x = (-b ± i√|Δ|) / (2a) = (${-b} ± i√${Math.abs(discriminant)}) / ${2 * a}</div>`;
+          result += `<div class="step">Real part: ${formatNum(realPart)}, Imaginary part: ±${formatNum(imagPart)}</div>`;
+        }
+        
+        result += `<div class="result">Two complex solutions:<br><strong>x₁ = ${formatNum(realPart)} + ${formatNum(imagPart)}i</strong><br><strong>x₂ = ${formatNum(realPart)} - ${formatNum(imagPart)}i</strong></div>`;
+      }
+      
+      return result;
+    }
+
+    function formatCoeff(coeff, addSign = false) {
+      if (Math.abs(coeff) < 1e-10) return addSign ? '' : '0';
+      
+      let result = '';
+      if (addSign) {
+        result += coeff >= 0 ? ' + ' : ' - ';
+        coeff = Math.abs(coeff);
+      } else if (coeff < 0) {
+        result += '-';
+        coeff = Math.abs(coeff);
+      }
+      
+      if (Math.abs(coeff - 1) < 1e-10 && addSign) {
+        return result.trim() === '+' ? ' + ' : ' - ';
+      }
+      
+      return result + formatNum(coeff);
+    }
+
+    function formatNum(num) {
+      if (Math.abs(num) < 1e-10) return '0';
+      if (Math.abs(num - Math.round(num)) < 1e-10) return Math.round(num).toString();
+      return parseFloat(num.toFixed(6)).toString();
+    }
+
+    // Event listeners
+    equationInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        solveEquation();
+      }
+    });
+
+    equationInput.addEventListener('input', function() {
+      if (this.value.trim() === '') {
+        solutionArea.textContent = 'Enter an equation above and click "Solve" to see the solution!';
+      }
+    });
+
+    // Focus input on load
+    equationInput.focus();
+  </script>
+</body>
+</html>
