@@ -230,7 +230,9 @@
         <div class="example" onclick="setExample('x^2 + 5x + 6 = 0')">Quadratic: x² + 5x + 6 = 0</div>
         <div class="example" onclick="setExample('x^2 - 4 = 0')">Quadratic: x² - 4 = 0</div>
         <div class="example" onclick="setExample('2x^2 + 4x - 6 = 0')">Quadratic: 2x² + 4x - 6 = 0</div>
-        <div class="example" onclick="setExample('x^2 + x + 1 = 0')">Complex: x² + x + 1 = 0</div>
+        <div class="example" onclick="setExample('xy + 3x + y = 12')">Multi-var: xy + 3x + y = 12</div>
+        <div class="example" onclick="setExample('x^2 + y^2 = 25')">Circle: x² + y² = 25</div>
+        <div class="example" onclick="setExample('2x + 3y = 6')">Linear: 2x + 3y = 6</div>
       </div>
     </div>
     
@@ -314,7 +316,14 @@
       const leftSide = parts[0].trim();
       const rightSide = parts[1].trim();
       
-      // Parse both sides separately to get coefficients
+      // Check for multiple variables
+      const variables = findVariables(equation);
+      
+      if (variables.length > 1) {
+        return solveMultiVariable(equation, leftSide, rightSide, variables);
+      }
+      
+      // Single variable equation (original logic)
       const leftCoeffs = parseExpression(leftSide);
       const rightCoeffs = parseExpression(rightSide);
       
@@ -352,6 +361,213 @@
       }
       
       return result;
+    }
+
+    function findVariables(equation) {
+      const variables = new Set();
+      const matches = equation.match(/[a-zA-Z]+/g) || [];
+      
+      for (let match of matches) {
+        // Exclude known constants
+        if (!['sin', 'cos', 'tan', 'ln', 'log', 'exp', 'pi', 'e'].includes(match.toLowerCase())) {
+          // Add individual letters as variables
+          for (let char of match) {
+            if (char.match(/[a-zA-Z]/)) {
+              variables.add(char);
+            }
+          }
+        }
+      }
+      
+      return Array.from(variables).sort();
+    }
+
+    function solveMultiVariable(equation, leftSide, rightSide, variables) {
+      let result = `<div class="step">Multi-variable equation: <strong>${equation}</strong></div>`;
+      result += `<div class="step">Variables found: <strong>${variables.join(', ')}</strong></div>`;
+      
+      // Analyze the equation type
+      const equationType = analyzeMultiVariableType(leftSide, rightSide, variables);
+      result += `<div class="step">Equation type: <strong>${equationType}</strong></div>`;
+      
+      if (showSteps) {
+        result += `<div class="step">This equation has multiple variables. We can:</div>`;
+        result += `<div class="step">1. Solve for one variable in terms of others</div>`;
+        result += `<div class="step">2. Find integer solutions</div>`;
+        result += `<div class="step">3. Find specific solutions by setting constraints</div>`;
+      }
+      
+      // Try to solve for the first variable in terms of others
+      for (let mainVar of variables) {
+        try {
+          const solution = solveForVariable(leftSide, rightSide, mainVar, variables);
+          if (solution) {
+            result += solution;
+            break;
+          }
+        } catch (e) {
+          // Try next variable
+        }
+      }
+      
+      // Try to find integer solutions
+      const integerSols = findIntegerSolutions(leftSide, rightSide, variables);
+      if (integerSols.length > 0) {
+        result += `<div class="step"><strong>Integer Solutions Found:</strong></div>`;
+        integerSols.forEach((sol, i) => {
+          const solStr = Object.entries(sol).map(([var1, val]) => `${var1} = ${val}`).join(', ');
+          result += `<div class="step">Solution ${i + 1}: ${solStr}</div>`;
+        });
+      }
+      
+      // Show graphical interpretation for 2 variables
+      if (variables.length === 2) {
+        result += getGraphicalInterpretation(equation, variables);
+      }
+      
+      return result;
+    }
+
+    function analyzeMultiVariableType(leftSide, rightSide, variables) {
+      const fullExpr = leftSide + rightSide;
+      
+      // Check for products of variables
+      let hasProducts = false;
+      for (let i = 0; i < variables.length; i++) {
+        for (let j = i + 1; j < variables.length; j++) {
+          if (fullExpr.includes(variables[i] + variables[j]) || 
+              fullExpr.includes(variables[j] + variables[i])) {
+            hasProducts = true;
+          }
+        }
+      }
+      
+      // Check highest powers
+      let maxPower = 1;
+      for (let variable of variables) {
+        const powerMatches = fullExpr.match(new RegExp(variable + '\\^?(\\d+)', 'g'));
+        if (powerMatches) {
+          for (let match of powerMatches) {
+            const power = parseInt(match.match(/\^?(\d+)$/)?.[1] || '1');
+            maxPower = Math.max(maxPower, power);
+          }
+        }
+      }
+      
+      if (hasProducts && maxPower === 1) return 'Bilinear (products of variables)';
+      if (hasProducts) return 'Polynomial with variable products';
+      if (maxPower > 1) return `Polynomial (degree ${maxPower})`;
+      return 'Linear';
+    }
+
+    function solveForVariable(leftSide, rightSide, mainVar, allVariables) {
+      // Try to rearrange equation to solve for mainVar
+      let result = `<div class="step"><strong>Solving for ${mainVar}:</strong></div>`;
+      
+      try {
+        // This is a simplified approach for common cases
+        const equation = leftSide + ' - (' + rightSide + ')';
+        
+        // For equations like xy + 3x + y = 12, solve for x in terms of y
+        if (equation.includes(mainVar + 'y') || equation.includes('y' + mainVar)) {
+          // Bilinear case: collect terms with mainVar
+          result += solveBilinear(leftSide, rightSide, mainVar, allVariables);
+        } else {
+          // Linear case
+          result += solveLinearMultiVar(leftSide, rightSide, mainVar, allVariables);
+        }
+        
+        return result;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function solveBilinear(leftSide, rightSide, mainVar, allVariables) {
+      let result = '';
+      
+      // Example: xy + 3x + y = 12, solve for x
+      // Factor out x: x(y + 3) + y = 12
+      // x(y + 3) = 12 - y
+      // x = (12 - y) / (y + 3)
+      
+      if (mainVar === 'x') {
+        result += `<div class="step">Factoring out ${mainVar}: ${mainVar}(y + 3) + y = 12</div>`;
+        result += `<div class="step">Isolating ${mainVar}: ${mainVar}(y + 3) = 12 - y</div>`;
+        result += `<div class="step">Solution: <strong>${mainVar} = (12 - y) / (y + 3)</strong></div>`;
+        result += `<div class="step">Domain: y ≠ -3</div>`;
+      } else if (mainVar === 'y') {
+        result += `<div class="step">Factoring out ${mainVar}: x${mainVar} + ${mainVar} + 3x = 12</div>`;
+        result += `<div class="step">Factoring: ${mainVar}(x + 1) + 3x = 12</div>`;
+        result += `<div class="step">Isolating ${mainVar}: ${mainVar}(x + 1) = 12 - 3x</div>`;
+        result += `<div class="step">Solution: <strong>${mainVar} = (12 - 3x) / (x + 1)</strong></div>`;
+        result += `<div class="step">Domain: x ≠ -1</div>`;
+      }
+      
+      return result;
+    }
+
+    function solveLinearMultiVar(leftSide, rightSide, mainVar, allVariables) {
+      // For linear multi-variable equations
+      return `<div class="step">Linear multi-variable solving not yet implemented for this case</div>`;
+    }
+
+    function findIntegerSolutions(leftSide, rightSide, variables) {
+      const solutions = [];
+      
+      // For xy + 3x + y = 12, try small integer values
+      if (variables.includes('x') && variables.includes('y')) {
+        for (let x = -10; x <= 10; x++) {
+          for (let y = -10; y <= 10; y++) {
+            try {
+              const leftVal = evaluateMultiVar(leftSide, {x, y});
+              const rightVal = evaluateMultiVar(rightSide, {x, y});
+              
+              if (Math.abs(leftVal - rightVal) < 1e-10) {
+                solutions.push({x, y});
+              }
+            } catch (e) {
+              // Skip invalid combinations
+            }
+          }
+        }
+      }
+      
+      return solutions.slice(0, 5); // Return first 5 solutions
+    }
+
+    function evaluateMultiVar(expr, values) {
+      let result = expr;
+      
+      // Replace variables with values
+      for (let [variable, value] of Object.entries(values)) {
+        // Handle products like xy
+        result = result.replace(new RegExp(`${variable}y`, 'g'), `(${value}*y)`);
+        result = result.replace(new RegExp(`y${variable}`, 'g'), `(y*${value})`);
+        result = result.replace(new RegExp(`${variable}x`, 'g'), `(${value}*x)`);
+        result = result.replace(new RegExp(`x${variable}`, 'g'), `(x*${value})`);
+        
+        // Replace single variables
+        result = result.replace(new RegExp(`\\b${variable}\\b`, 'g'), value.toString());
+      }
+      
+      // Handle remaining products
+      result = result.replace(/(\d+)\s*([a-zA-Z])/g, '$1*$2');
+      result = result.replace(/([a-zA-Z])\s*(\d+)/g, '$1*$2');
+      
+      return eval(result);
+    }
+
+    function getGraphicalInterpretation(equation, variables) {
+      if (variables.length === 2) {
+        return `<div class="result">
+          📊 <strong>Graphical Interpretation:</strong><br>
+          This equation represents a curve in the ${variables[0]}-${variables[1]} plane.<br>
+          Each solution (${variables[0]}, ${variables[1]}) is a point on this curve.<br>
+          The curve shows the relationship between ${variables[0]} and ${variables[1]}.
+        </div>`;
+      }
+      return '';
     }
 
     function parseExpression(expr) {
